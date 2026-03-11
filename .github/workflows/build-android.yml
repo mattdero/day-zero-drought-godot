@@ -105,15 +105,16 @@ jobs:
 
           # Write Godot editor settings so it can find the Android SDK
           # and the debug keystore.
+          # (Using echo instead of heredoc to avoid YAML indentation issues.)
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres << SETTINGS
-[gd_resource type="EditorSettings" format=3]
-[resource]
-export/android/android_sdk_path = "$ANDROID_HOME"
-export/android/debug_keystore = "$DEBUG_KS"
-export/android/debug_keystore_user = "androiddebugkey"
-export/android/debug_keystore_pass = "android"
-SETTINGS
+          {
+            echo '[gd_resource type="EditorSettings" format=3]'
+            echo '[resource]'
+            echo "export/android/android_sdk_path = \"$ANDROID_HOME\""
+            echo "export/android/debug_keystore = \"$DEBUG_KS\""
+            echo 'export/android/debug_keystore_user = "androiddebugkey"'
+            echo 'export/android/debug_keystore_pass = "android"'
+          } > ~/.config/godot/editor_settings-4.tres
 
           # Patch export_presets.cfg: inject the debug keystore path so Godot
           # doesn't fall back to the (empty) preset value and error out.
