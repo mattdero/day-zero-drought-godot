@@ -83,24 +83,53 @@ jobs:
           echo "Templates installed at $TMPL_DIR"
           ls "$TMPL_DIR" | grep -i android || echo "⚠ No Android templates found!"
 
-      # ── 8. Configure Godot editor settings (Android SDK path) ─────────────────
-      - name: Configure Godot Android SDK path
+      # ── 8. Configure Godot editor settings + debug keystore ──────────────────
+      - name: Set up debug keystore and Godot editor settings
         run: |
+          DEBUG_KS="$HOME/.android/debug.keystore"
+
+          # Generate the standard Android debug keystore if the SDK setup
+          # didn't create one automatically.
+          if [ ! -f "$DEBUG_KS" ]; then
+            echo "Generating debug keystore…"
+            mkdir -p "$HOME/.android"
+            keytool -genkey -v \
+              -keystore "$DEBUG_KS" \
+              -storepass android \
+              -alias androiddebugkey \
+              -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          echo "Debug keystore: $DEBUG_KS"
+
+          # Write Godot editor settings so it can find the Android SDK
+          # and the debug keystore.
           mkdir -p ~/.config/godot
-          cat > ~/.config/godot/editor_settings-4.tres << EOF
-          [gd_resource type="EditorSettings" format=3]
-          [resource]
-          export/android/android_sdk_path = "$ANDROID_HOME"
-          export/android/debug_keystore = ""
-          export/android/debug_keystore_user = "androiddebugkey"
-          export/android/debug_keystore_pass = "android"
-          EOF
+          cat > ~/.config/godot/editor_settings-4.tres << SETTINGS
+[gd_resource type="EditorSettings" format=3]
+[resource]
+export/android/android_sdk_path = "$ANDROID_HOME"
+export/android/debug_keystore = "$DEBUG_KS"
+export/android/debug_keystore_user = "androiddebugkey"
+export/android/debug_keystore_pass = "android"
+SETTINGS
+
+          # Patch export_presets.cfg: inject the debug keystore path so Godot
+          # doesn't fall back to the (empty) preset value and error out.
+          sed -i "s|keystore/debug=\"\"|keystore/debug=\"${DEBUG_KS}\"|"       export_presets.cfg
+          sed -i 's|keystore/debug_password=""|keystore/debug_password="android"|' export_presets.cfg
+          sed -i 's|keystore/debug_user=""|keystore/debug_user="androiddebugkey"|' export_presets.cfg
 
       # ── 9. Keystore setup (release signing, optional) ─────────────────────────
       #
-      #  If ANDROID_KEYSTORE_BASE64 secret is set, this step patches
-      #  export_presets.cfg with real values for a release-signed APK.
-      #  Without the secret, Godot falls back to debug signing.
+      #  Add these four GitHub secrets for a Play-Store-ready release APK:
+      #    ANDROID_KEYSTORE_BASE64  — base64-encoded .keystore file
+      #    ANDROID_KEYSTORE_PASS    — keystore password
+      #    ANDROID_KEY_ALIAS        — key alias inside the keystore
+      #    ANDROID_KEY_PASS         — key password
+      #
+      #  Without secrets the build uses the debug keystore (sideload-ready).
       #
       - name: Set up release keystore (if secrets provided)
         env:
@@ -115,9 +144,12 @@ jobs:
             sed -i "s|KEYSTORE_PATH_PLACEHOLDER|$(pwd)/release.keystore|g" export_presets.cfg
             sed -i "s|KEYSTORE_PASS_PLACEHOLDER|${KEYSTORE_PASS}|g"        export_presets.cfg
             sed -i "s|KEYSTORE_ALIAS_PLACEHOLDER|${KEY_ALIAS}|g"           export_presets.cfg
-            sed -i "s|KEYSTORE_KEY_PASS_PLACEHOLDER|${KEY_PASS}|g"         export_presets.cfg
           else
-            echo "No release keystore — APK will be debug-signed."
+            echo "No release keystore — clearing placeholders, using debug signing."
+            # Must clear placeholders or Godot will error on the invalid path.
+            sed -i 's|KEYSTORE_PATH_PLACEHOLDER||g'  export_presets.cfg
+            sed -i 's|KEYSTORE_PASS_PLACEHOLDER||g'  export_presets.cfg
+            sed -i 's|KEYSTORE_ALIAS_PLACEHOLDER||g' export_presets.cfg
           fi
 
       # ── 10. Export ────────────────────────────────────────────────────────────
