@@ -109,8 +109,10 @@ jobs:
           mkdir -p ~/.config/godot
           {
             echo '[gd_resource type="EditorSettings" format=3]'
+            echo ''
             echo '[resource]'
             echo "export/android/android_sdk_path = \"$ANDROID_HOME\""
+            echo "export/android/java_sdk_path = \"$JAVA_HOME\""
             echo "export/android/debug_keystore = \"$DEBUG_KS\""
             echo 'export/android/debug_keystore_user = "androiddebugkey"'
             echo 'export/android/debug_keystore_pass = "android"'
@@ -155,7 +157,30 @@ jobs:
             sed -i 's|KEYSTORE_ALIAS_PLACEHOLDER|androiddebugkey|g' export_presets.cfg
           fi
 
-      # ── 10. Export ────────────────────────────────────────────────────────────
+      # ── 10. Pre-export diagnostics ────────────────────────────────────────────
+      - name: Verify export prerequisites
+        run: |
+          echo "=== Editor settings ==="
+          cat ~/.config/godot/editor_settings-4.tres
+          echo ""
+          echo "=== export_presets.cfg (keystore lines) ==="
+          grep -E "keystore|package/unique|version/" export_presets.cfg
+          echo ""
+          echo "=== Android SDK structure ==="
+          ls "$ANDROID_HOME/build-tools/" 2>/dev/null && echo "build-tools OK" || echo "⚠ build-tools missing"
+          ls "$ANDROID_HOME/platforms/"  2>/dev/null && echo "platforms OK"   || echo "⚠ platforms missing"
+          ls "$ANDROID_HOME/platform-tools/adb" 2>/dev/null && echo "adb OK" || echo "⚠ adb missing"
+          echo ""
+          echo "=== Keystore ==="
+          ls -lh "$HOME/.android/debug.keystore" 2>/dev/null && echo "keystore OK" || echo "⚠ keystore missing"
+          echo ""
+          echo "=== Godot templates ==="
+          ls ~/.local/share/godot/export_templates/ 2>/dev/null
+          echo ""
+          echo "=== Java ==="
+          which jarsigner && jarsigner -version || echo "⚠ jarsigner not found"
+
+      # ── 11. Export ────────────────────────────────────────────────────────────
       - name: Create output directory
         run: mkdir -p builds/android
 
