@@ -1,0 +1,141 @@
+[gd_scene load_steps=2 format=3 uid="uid://hud_main"]
+
+[ext_resource type="Script" path="res://scripts/HUD.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+layer = 1
+script = ExtResource("1_hud")
+
+[node name="TopBar" type="ColorRect" parent="."]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 1080.0
+offset_bottom = 160.0
+color = Color(0.05, 0.07, 0.14, 1.0)
+
+[node name="DayLabel" type="Label" parent="TopBar"]
+offset_left = 20.0
+offset_top = 8.0
+offset_right = 720.0
+offset_bottom = 128.0
+text = "180"
+theme_override_font_sizes/font_size = 96
+theme_override_colors/font_color = Color(0.2, 0.9, 1.0, 1.0)
+
+[node name="DaySubLabel" type="Label" parent="TopBar"]
+offset_left = 20.0
+offset_top = 118.0
+offset_right = 600.0
+offset_bottom = 155.0
+text = "Days Remaining"
+theme_override_font_sizes/font_size = 28
+theme_override_colors/font_color = Color(0.65, 0.7, 0.8, 1.0)
+
+[node name="GaugeBar" type="VBoxContainer" parent="."]
+offset_left = 10.0
+offset_top = 165.0
+offset_right = 1070.0
+offset_bottom = 310.0
+theme_override_constants/separation = 6
+
+[node name="ScarcityRow" type="HBoxContainer" parent="GaugeBar"]
+theme_override_constants/separation = 8
+
+[node name="ScarcityLabel" type="Label" parent="GaugeBar/ScarcityRow"]
+custom_minimum_size = Vector2(210.0, 0.0)
+text = "Water Scarcity"
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+
+[node name="Bar" type="ProgressBar" parent="GaugeBar/ScarcityRow"]
+custom_minimum_size = Vector2(700.0, 34.0)
+value = 40.0
+show_percentage = false
+size_flags_horizontal = 3
+
+[node name="FloodRow" type="HBoxContainer" parent="GaugeBar"]
+theme_override_constants/separation = 8
+
+[node name="FloodLabel" type="Label" parent="GaugeBar/FloodRow"]
+custom_minimum_size = Vector2(210.0, 0.0)
+text = "Flood Risk"
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+
+[node name="Bar" type="ProgressBar" parent="GaugeBar/FloodRow"]
+custom_minimum_size = Vector2(700.0, 34.0)
+value = 10.0
+show_percentage = false
+size_flags_horizontal = 3
+
+[node name="WildfireRow" type="HBoxContainer" parent="GaugeBar"]
+theme_override_constants/separation = 8
+
+[node name="WildfireLabel" type="Label" parent="GaugeBar/WildfireRow"]
+custom_minimum_size = Vector2(210.0, 0.0)
+text = "Wildfire Danger"
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+
+[node name="Bar" type="ProgressBar" parent="GaugeBar/WildfireRow"]
+custom_minimum_size = Vector2(700.0, 34.0)
+value = 20.0
+show_percentage = false
+size_flags_horizontal = 3
+
+[node name="ResourceRow" type="HBoxContainer" parent="."]
+offset_left = 10.0
+offset_top = 315.0
+offset_right = 1070.0
+offset_bottom = 405.0
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="APDots" type="HBoxContainer" parent="ResourceRow"]
+custom_minimum_size = Vector2(230.0, 80.0)
+alignment = 1
+
+[node name="TrustLabel" type="Label" parent="ResourceRow"]
+text = "Trust 75%"
+theme_override_font_sizes/font_size = 28
+
+[node name="RainLabel" type="Label" parent="ResourceRow"]
+text = "Rain 25.0mm"
+theme_override_font_sizes/font_size = 28
+
+[node name="AquiferLabel" type="Label" parent="ResourceRow"]
+text = "Aquifer 60%"
+theme_override_font_sizes/font_size = 28
+
+[node name="EventLog" type="Label" parent="."]
+offset_left = 10.0
+offset_top = 1365.0
+offset_right = 1070.0
+offset_bottom = 1505.0
+text = ""
+theme_override_font_sizes/font_size = 26
+theme_override_colors/font_color = Color(0.8, 0.9, 0.6, 1.0)
+autowrap_mode = 3
+
+[node name="SolutionBar" type="ColorRect" parent="."]
+offset_left = 0.0
+offset_top = 1510.0
+offset_right = 1080.0
+offset_bottom = 1920.0
+color = Color(0.07, 0.09, 0.15, 1.0)
+
+[node name="SBLabel" type="Label" parent="SolutionBar"]
+offset_left = 10.0
+offset_top = 8.0
+offset_right = 500.0
+offset_bottom = 40.0
+text = "— SOLUTIONS —"
+theme_override_font_sizes/font_size = 22
+theme_override_colors/font_color = Color(0.5, 0.6, 0.75, 1.0)
+
+[node name="Cards" type="HBoxContainer" parent="SolutionBar"]
+offset_left = 10.0
+offset_top = 45.0
+offset_right = 1070.0
+offset_bottom = 395.0
+theme_override_constants/separation = 8

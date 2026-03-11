@@ -1,0 +1,49 @@
+[gd_scene load_steps=5 format=3 uid="uid://gameworld_main"]
+
+[ext_resource type="Script" path="res://scripts/GameWorld.gd" id="1_gameworld"]
+[ext_resource type="Script" path="res://scripts/WaterCycle.gd" id="2_watercycle"]
+[ext_resource type="PackedScene" path="res://scenes/HUD.tscn" id="3_hud"]
+[ext_resource type="PackedScene" path="res://scenes/MapTile.tscn" id="4_maptile"]
+
+[node name="GameWorld" type="Node2D"]
+script = ExtResource("1_gameworld")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 2200.0
+offset_bottom = 1200.0
+color = Color(0.03, 0.05, 0.09, 1.0)
+z_index = -10
+
+[node name="MapContainer" type="Node2D" parent="."]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+zoom = Vector2(2.0, 2.0)
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+
+[node name="RainParticles" type="CPUParticles2D" parent="."]
+emitting = false
+amount = 0
+lifetime = 1.6
+direction = Vector2(0.15, 1.0)
+spread = 5.0
+gravity = Vector2(0.0, 280.0)
+initial_velocity_min = 250.0
+initial_velocity_max = 420.0
+scale_amount_min = 0.6
+scale_amount_max = 1.4
+color = Color(0.55, 0.78, 1.0, 0.85)
+emission_shape = 1
+emission_rect_extents = Vector2(540.0, 960.0)
+position = Vector2(540.0, 0.0)
+
+[node name="WaterCycle" type="Node" parent="."]
+script = ExtResource("2_watercycle")
+
+[node name="APTimer" type="Timer" parent="."]
+wait_time = 10.0
+autostart = true
+
+[node name="HUD" parent="." instance=ExtResource("3_hud")]

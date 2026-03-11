@@ -1,0 +1,155 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:          # allow manual runs from the GitHub UI
+
+env:
+  GODOT_VERSION: "4.6"
+  GODOT_RELEASE: "stable"    # change to "rc1" etc. if needed
+  EXPORT_PRESET: "Android"
+  APK_NAME: "day-zero-drought"
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Source ────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      # ── 2. Timestamp (used in artifact name) ─────────────────────────────────
+      - name: Set build timestamp
+        id: ts
+        run: echo "DATE=$(date -u +'%Y%m%d-%H%M')" >> "$GITHUB_OUTPUT"
+
+      # ── 3. Java (required by Android build tools) ─────────────────────────────
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      # ── 4. Android SDK ────────────────────────────────────────────────────────
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "build-tools;34.0.0" \
+            "platforms;android-34" \
+            "cmdline-tools;latest"
+          yes | sdkmanager --licenses || true
+
+      # ── 5. Cache Godot binaries ───────────────────────────────────────────────
+      - name: Cache Godot headless + templates
+        id: cache-godot
+        uses: actions/cache@v4
+        with:
+          path: |
+            /usr/local/bin/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-${{ env.GODOT_RELEASE }}
+
+      # ── 6. Download Godot headless ────────────────────────────────────────────
+      - name: Download Godot headless
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          BASE="https://github.com/godotengine/godot/releases/download"
+          TAG="${GODOT_VERSION}-${GODOT_RELEASE}"
+          curl -sL "${BASE}/${TAG}/Godot_v${TAG}_linux.x86_64.zip" -o godot.zip
+          unzip -q godot.zip
+          mv "Godot_v${TAG}_linux.x86_64" /usr/local/bin/godot
+          chmod +x /usr/local/bin/godot
+          godot --version
+
+      # ── 7. Download & install export templates ────────────────────────────────
+      - name: Download export templates
+        if: steps.cache-godot.outputs.cache-hit != 'true'
+        run: |
+          BASE="https://github.com/godotengine/godot/releases/download"
+          TAG="${GODOT_VERSION}-${GODOT_RELEASE}"
+          curl -sL "${BASE}/${TAG}/Godot_v${TAG}_export_templates.tpz" -o templates.tpz
+          TMPL_DIR=~/.local/share/godot/export_templates/${GODOT_VERSION}.${GODOT_RELEASE}
+          mkdir -p "$TMPL_DIR"
+          unzip -q templates.tpz -d /tmp/godot_templates
+          mv /tmp/godot_templates/templates/* "$TMPL_DIR/"
+          echo "Templates installed at $TMPL_DIR"
+          ls "$TMPL_DIR" | grep -i android || echo "⚠ No Android templates found!"
+
+      # ── 8. Configure Godot editor settings (Android SDK path) ─────────────────
+      - name: Configure Godot Android SDK path
+        run: |
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-4.tres << EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/debug_keystore = ""
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      # ── 9. Keystore setup (release signing, optional) ─────────────────────────
+      #
+      #  If ANDROID_KEYSTORE_BASE64 secret is set, this step patches
+      #  export_presets.cfg with real values for a release-signed APK.
+      #  Without the secret, Godot falls back to debug signing.
+      #
+      - name: Set up release keystore (if secrets provided)
+        env:
+          KEYSTORE_B64:  ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASS }}
+          KEY_ALIAS:     ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASS:      ${{ secrets.ANDROID_KEY_PASS }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "Release keystore found — using release signing."
+            echo "$KEYSTORE_B64" | base64 -d > release.keystore
+            sed -i "s|KEYSTORE_PATH_PLACEHOLDER|$(pwd)/release.keystore|g" export_presets.cfg
+            sed -i "s|KEYSTORE_PASS_PLACEHOLDER|${KEYSTORE_PASS}|g"        export_presets.cfg
+            sed -i "s|KEYSTORE_ALIAS_PLACEHOLDER|${KEY_ALIAS}|g"           export_presets.cfg
+            sed -i "s|KEYSTORE_KEY_PASS_PLACEHOLDER|${KEY_PASS}|g"         export_presets.cfg
+          else
+            echo "No release keystore — APK will be debug-signed."
+          fi
+
+      # ── 10. Export ────────────────────────────────────────────────────────────
+      - name: Create output directory
+        run: mkdir -p builds/android
+
+      - name: Export Android APK (debug-signed)
+        run: |
+          godot --headless --export-debug "$EXPORT_PRESET" \
+            "builds/android/${APK_NAME}.apk" 2>&1
+          ls -lh builds/android/
+
+      # ── 11. Rename & upload ───────────────────────────────────────────────────
+      - name: Rename APK with timestamp
+        run: |
+          mv "builds/android/${APK_NAME}.apk" \
+             "${APK_NAME}-${{ steps.ts.outputs.DATE }}.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.APK_NAME }}-${{ steps.ts.outputs.DATE }}
+          path: "${{ env.APK_NAME }}-*.apk"
+          retention-days: 30
+
+      # ── 12. Summary ───────────────────────────────────────────────────────────
+      - name: Write job summary
+        run: |
+          echo "## Build complete" >> $GITHUB_STEP_SUMMARY
+          echo "| | |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| **APK** | \`${APK_NAME}-${{ steps.ts.outputs.DATE }}.apk\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Godot** | ${GODOT_VERSION}-${GODOT_RELEASE} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Signed** | $([ -f release.keystore ] && echo 'Release' || echo 'Debug') |" >> $GITHUB_STEP_SUMMARY
+          ls -lh "${APK_NAME}-"*.apk >> $GITHUB_STEP_SUMMARY || true
