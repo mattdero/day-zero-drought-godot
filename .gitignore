@@ -1,9 +1,21 @@
 # Godot 4 generated files
 .godot/
 export/
+.nomedia
 
 # Import cache
 *.import
+.import/
+export.cfg
+export_credentials.cfg
+
+# Translated strings
+*.translation
+
+# Mono
+.mono/
+data_*/
+mono_crash.*.json
 
 # OS files
 .DS_Store
