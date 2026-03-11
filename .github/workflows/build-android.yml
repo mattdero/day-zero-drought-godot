@@ -170,6 +170,11 @@ jobs:
           ls "$ANDROID_HOME/build-tools/" 2>/dev/null && echo "build-tools OK" || echo "⚠ build-tools missing"
           ls "$ANDROID_HOME/platforms/"  2>/dev/null && echo "platforms OK"   || echo "⚠ platforms missing"
           ls "$ANDROID_HOME/platform-tools/adb" 2>/dev/null && echo "adb OK" || echo "⚠ adb missing"
+          BT=$(ls "$ANDROID_HOME/build-tools/" | sort -V | tail -1)
+          echo "Highest build-tools: $BT"
+          ls "$ANDROID_HOME/build-tools/$BT/apksigner" 2>/dev/null && echo "apksigner OK" || echo "⚠ apksigner missing"
+          ls "$ANDROID_HOME/build-tools/$BT/zipalign" 2>/dev/null && echo "zipalign OK"   || echo "⚠ zipalign missing"
+          ls "$ANDROID_HOME/build-tools/$BT/aapt2"    2>/dev/null && echo "aapt2 OK"      || echo "⚠ aapt2 missing"
           echo ""
           echo "=== Keystore ==="
           ls -lh "$HOME/.android/debug.keystore" 2>/dev/null && echo "keystore OK" || echo "⚠ keystore missing"
@@ -186,8 +191,8 @@ jobs:
 
       - name: Export Android APK
         run: |
-          godot --headless --export-release "$EXPORT_PRESET" \
-            "builds/android/${APK_NAME}.apk" --quit 2>&1
+          godot --headless --verbose --export-release "$EXPORT_PRESET" \
+            "builds/android/${APK_NAME}.apk" 2>&1
           ls -lh builds/android/
 
       # ── 11. Rename & upload ───────────────────────────────────────────────────
