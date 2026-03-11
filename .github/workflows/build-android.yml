@@ -181,6 +181,10 @@ jobs:
           echo ""
           echo "=== Godot templates ==="
           ls ~/.local/share/godot/export_templates/ 2>/dev/null
+          TMPL_DIR=$(ls ~/.local/share/godot/export_templates/ 2>/dev/null | head -1)
+          echo "Template dir: $TMPL_DIR"
+          ls ~/.local/share/godot/export_templates/$TMPL_DIR/ 2>/dev/null | grep -i android || echo "⚠ no android templates"
+          echo "Godot expects templates at: $(godot --headless --version 2>/dev/null | head -1 | grep -oP '\d+\.\d+' | head -1).stable or similar"
           echo ""
           echo "=== Java ==="
           which jarsigner && jarsigner -version || echo "⚠ jarsigner not found"
@@ -191,7 +195,7 @@ jobs:
 
       - name: Export Android APK
         run: |
-          godot --headless --verbose --export-release "$EXPORT_PRESET" \
+          godot --headless --verbose --export-debug "$EXPORT_PRESET" \
             "builds/android/${APK_NAME}.apk" 2>&1
           ls -lh builds/android/
 
