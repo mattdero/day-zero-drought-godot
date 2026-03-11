@@ -157,10 +157,10 @@ jobs:
       - name: Create output directory
         run: mkdir -p builds/android
 
-      - name: Export Android APK (debug-signed)
+      - name: Export Android APK
         run: |
-          godot --headless --export-debug "$EXPORT_PRESET" \
-            "builds/android/${APK_NAME}.apk" 2>&1
+          godot --headless --export-release "$EXPORT_PRESET" \
+            "builds/android/${APK_NAME}.apk" --quit 2>&1
           ls -lh builds/android/
 
       # ── 11. Rename & upload ───────────────────────────────────────────────────
