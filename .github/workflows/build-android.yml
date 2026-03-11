@@ -146,11 +146,13 @@ jobs:
             sed -i "s|KEYSTORE_PASS_PLACEHOLDER|${KEYSTORE_PASS}|g"        export_presets.cfg
             sed -i "s|KEYSTORE_ALIAS_PLACEHOLDER|${KEY_ALIAS}|g"           export_presets.cfg
           else
-            echo "No release keystore — clearing placeholders, using debug signing."
-            # Must clear placeholders or Godot will error on the invalid path.
-            sed -i 's|KEYSTORE_PATH_PLACEHOLDER||g'  export_presets.cfg
-            sed -i 's|KEYSTORE_PASS_PLACEHOLDER||g'  export_presets.cfg
-            sed -i 's|KEYSTORE_ALIAS_PLACEHOLDER||g' export_presets.cfg
+            echo "No release keystore — signing release APK with debug key (sideload-ready)."
+            # --export-release requires a non-empty keystore/release or Godot errors.
+            # Use the debug keystore so the APK is installable without Play Store.
+            DEBUG_KS="$HOME/.android/debug.keystore"
+            sed -i "s|KEYSTORE_PATH_PLACEHOLDER|${DEBUG_KS}|g" export_presets.cfg
+            sed -i 's|KEYSTORE_PASS_PLACEHOLDER|android|g'     export_presets.cfg
+            sed -i 's|KEYSTORE_ALIAS_PLACEHOLDER|androiddebugkey|g' export_presets.cfg
           fi
 
       # ── 10. Export ────────────────────────────────────────────────────────────
